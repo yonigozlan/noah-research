@@ -18,20 +18,9 @@ import smplx
 import torch
 import torchgeometry as tgm
 from common import constants
-from common.mocap_dataset import MocapDataset
 from common.pose_dataset import PoseDataset
-from common.renderer_pyrd import Renderer
-from common.utils import (
-    cam_crop2full,
-    estimate_focal_length,
-    strip_prefix_if_present,
-    video_to_images,
-)
+from common.utils import cam_crop2full, estimate_focal_length, strip_prefix_if_present
 from constants import AUGMENTED_VERTICES_INDEX_DICT
-from lib.yolov3_dataset import DetectionDataset
-from lib.yolov3_detector import HumanDetector
-from models.cliff_hr48.cliff import CLIFF as cliff_hr48
-from models.cliff_res50.cliff import CLIFF as cliff_res50
 from omegaconf import OmegaConf
 from smplx import build_layer
 from torch.utils.data import DataLoader
@@ -40,7 +29,6 @@ from xtcocotools.coco import COCO
 
 from mmpose.evaluation.metrics.infinity_metric import InfinityAnatomicalMetric
 from smplx_local.transfer_model.config.defaults import conf as default_conf
-from smplx_local.transfer_model.data import build_dataloader
 from smplx_local.transfer_model.losses import build_loss
 from smplx_local.transfer_model.optimizers import build_optimizer, minimize
 from smplx_local.transfer_model.transfer_model import (
