@@ -21,6 +21,8 @@ from common import constants
 from common.pose_dataset import PoseDataset
 from common.utils import cam_crop2full, estimate_focal_length, strip_prefix_if_present
 from constants import AUGMENTED_VERTICES_INDEX_DICT
+from models.cliff_hr48.cliff import CLIFF as cliff_hr48
+from models.cliff_res50.cliff import CLIFF as cliff_res50
 from omegaconf import OmegaConf
 from smplx import build_layer
 from torch.utils.data import DataLoader
