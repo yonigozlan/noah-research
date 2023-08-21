@@ -1,0 +1,5 @@
+__pycache__/
+data/ckpt/
+data/smpl/
+data/test_samples/
+cliffGT_v1/

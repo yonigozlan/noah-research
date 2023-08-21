@@ -25,5 +25,5 @@ fi
 if true; then
 python demo.py --ckpt ${CKPT_PATH} --backbone ${BACKBONE} \
                --input_path data/test_samples/lspet_samples --input_type folder \
-               --show_bbox --show_sideView --save_results
+               --show_bbox --show_sideView --save_results --batch_size 1
 fi
