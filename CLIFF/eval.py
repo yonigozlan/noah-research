@@ -225,7 +225,7 @@ def get_smplx_tools(device):
         "smplx_local", exp_cfg.get("deformation_transfer_path", "")
     )
     def_matrix = read_deformation_transfer(deformation_transfer_path, device=device)
-    body_model = build_layer("../../models", **exp_cfg.body_model)
+    body_model = build_layer("/scratch/users/yonigoz/", **exp_cfg.body_model)
     body_model.to(device=device)
 
     return exp_cfg, def_matrix, body_model
