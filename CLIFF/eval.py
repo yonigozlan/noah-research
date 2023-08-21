@@ -354,7 +354,6 @@ def eval_dataset(root_dir, annotation_path):
         img_w = batch["img_w"].to(device).float()
         focal_length = batch["focal_length"].to(device).float()
         ann_ids = coco.getAnnIds(imgIds=batch["id"].numpy())
-        print("ann_ids:", ann_ids)
         anns = coco.loadAnns(ann_ids)
         cx, cy, b = center[:, 0], center[:, 1], scale * 200
         bbox_info = torch.stack([cx - img_w / 2.0, cy - img_h / 2.0, b], dim=-1)
@@ -437,7 +436,6 @@ def eval_dataset(root_dir, annotation_path):
             data_sample["pred_instances"]["keypoint_scores"] = np.ones(
                 (1, len(projected_vertices[0]) + 17)
             )
-            # print("keypoints shape:", data_sample["pred_instances"]["keypoints"].shape)
             # print(
             #     "keypoint_scores shape:",
             #     data_sample["pred_instances"]["keypoint_scores"].shape,
@@ -460,10 +458,8 @@ def eval_dataset(root_dir, annotation_path):
             # vertices_path = osp.join("eval_test", filename)
             # cv2.imwrite(vertices_path, img_ori)
             data_samples.append(data_sample)
-            print("data_sample:", data_sample["img_id"])
         infinity_metric.process([], data_samples)
         # results = infinity_metric.compute_metrics(infinity_metric.results)
-        # print("results:", results)
     infinity_metric.evaluate(size=len(infinity_metric.results))
 
 
