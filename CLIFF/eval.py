@@ -464,4 +464,4 @@ def eval_dataset(root_dir, annotation_path):
 
 
 if __name__ == "__main__":
-    eval_dataset("../../", "combined_dataset_15fps/test/annotations.json")
+    eval_dataset("/scratch/users/yonigoz/RICH/full_test/", "val_annotations.json")
