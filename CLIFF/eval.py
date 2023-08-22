@@ -431,22 +431,22 @@ def eval_dataset(root_dir, annotation_path):
             #     data_sample["pred_instances"]["keypoint_scores"].shape,
             # )
             # render vertices on image and save it
-            # for x, y in keypoints[0, 17:, :]:
-            #     cv2.circle(img_ori, (int(x), int(y)), 1, (0, 0, 255))
-            # for name in data_sample["raw_ann_info"]["keypoints"]:
-            #     cv2.circle(
-            #         img_ori,
-            #         (
-            #             int(data_sample["raw_ann_info"]["keypoints"][name]["x"]),
-            #             int(data_sample["raw_ann_info"]["keypoints"][name]["y"]),
-            #         ),
-            #         1,
-            #         (255, 0, 0),
-            #     )
-            # filename = osp.basename(img_ori_path).split(".")[0]
-            # filename = filename + "_vertices_cliff_%s.jpg" % BACKBONE
-            # vertices_path = osp.join("eval_test", filename)
-            # cv2.imwrite(vertices_path, img_ori)
+            for x, y in keypoints[0, 17:, :]:
+                cv2.circle(img_ori, (int(x), int(y)), 1, (0, 0, 255))
+            for name in data_sample["raw_ann_info"]["keypoints"]:
+                cv2.circle(
+                    img_ori,
+                    (
+                        int(data_sample["raw_ann_info"]["keypoints"][name]["x"]),
+                        int(data_sample["raw_ann_info"]["keypoints"][name]["y"]),
+                    ),
+                    10,
+                    (255, 0, 0),
+                )
+            filename = osp.basename(img_ori_path).split(".")[0]
+            filename = filename + "_vertices_cliff_%s.jpg" % BACKBONE
+            vertices_path = osp.join("eval_test", filename)
+            cv2.imwrite(vertices_path, img_ori)
             data_samples.append(data_sample)
         infinity_metric.process([], data_samples)
         # results = infinity_metric.compute_metrics(infinity_metric.results)
