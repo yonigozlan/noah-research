@@ -333,11 +333,7 @@ def eval_dataset(root_dir, annotation_path):
 
     pose_dataset = PoseDataset(root_dir, annotation_path)
     pose_data_loader = DataLoader(pose_dataset, batch_size=BATCH_SIZE, num_workers=0)
-    j = 0
     for batch in tqdm(pose_data_loader):
-        if j >= 3:
-            break
-        j += 1
         norm_img = batch["norm_img"].to(device).float()
         center = batch["center"].to(device).float()
         scale = batch["scale"].to(device).float()
@@ -453,7 +449,6 @@ def eval_dataset(root_dir, annotation_path):
             # cv2.imwrite(vertices_path, img_ori)
             data_samples.append(data_sample)
         infinity_metric.process([], data_samples)
-        print("results:", infinity_metric.results)
         # results = infinity_metric.compute_metrics(infinity_metric.results)
     infinity_metric.evaluate(size=len(infinity_metric.results))
 
