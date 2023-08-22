@@ -3,14 +3,14 @@ datasets:
     data_folder: "transfer_data/meshes/smpl"
 deformation_transfer_path: "transfer_data/smpl2smplx_deftrafo_setup.pkl"
 mask_ids_fname: "smplx_mask_ids.npy"
-summary_steps: 100
+summary_steps: 50
 
 edge_fitting:
   per_part: False
 
 optim:
   type: "trust-ncg"
-  maxiters: 100
+  maxiters: 50
   gtol: 1e-06
 
 body_model:
