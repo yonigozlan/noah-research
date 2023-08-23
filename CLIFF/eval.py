@@ -48,7 +48,7 @@ from smplx_local.transfer_model.utils.def_transfer import apply_deformation_tran
 
 CKPT_PATH = "data/ckpt/hr48-PA43.0_MJE69.0_MVE81.2_3dpw.pt"
 BACKBONE = "hr48"
-BATCH_SIZE = 1024
+BATCH_SIZE = 64
 
 
 def run_fitting(
@@ -455,5 +455,5 @@ def eval_dataset(root_dir, annotation_path):
 
 if __name__ == "__main__":
     # eval_dataset("../../", "combined_dataset_15fps/test/annotations.json")
-    # eval_dataset("/scratch/users/yonigoz/RICH/full_test/", "val_annotations.json")
-    eval_dataset("/scratch/users/yonigoz/BEDLAM/data/", "val_annotations.json")
+    eval_dataset("/scratch/users/yonigoz/RICH/full_test/", "val_annotations.json")
+    # eval_dataset("/scratch/users/yonigoz/BEDLAM/data/", "val_annotations.json")
