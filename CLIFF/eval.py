@@ -449,6 +449,7 @@ def eval_dataset(root_dir, annotation_path):
             # cv2.imwrite(vertices_path, img_ori)
             data_samples.append(data_sample)
         infinity_metric.process([], data_samples)
+        torch.cuda.empty_cache()
         # results = infinity_metric.compute_metrics(infinity_metric.results)
     infinity_metric.evaluate(size=len(infinity_metric.results))
 
