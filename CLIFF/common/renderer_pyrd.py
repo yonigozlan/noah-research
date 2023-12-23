@@ -7,12 +7,13 @@
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE. See the MIT License for more details.
 
-import os
-import trimesh
-import pyrender
-import numpy as np
 import colorsys
+import os
+
 import cv2
+import numpy as np
+import pyrender
+import trimesh
 
 
 class Renderer(object):
@@ -25,7 +26,7 @@ class Renderer(object):
                                                    point_size=1.0)
         self.camera_center = [img_w // 2, img_h // 2]
         self.focal_length = focal_length
-        self.faces = faces
+        self.faces = faces.cpu().numpy()
         self.same_mesh_color = same_mesh_color
 
     def render_front_view(self, verts, bg_img_rgb=None, bg_color=(0, 0, 0, 0)):

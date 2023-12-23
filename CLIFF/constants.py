@@ -56,7 +56,7 @@ exercises = [
 K1 = np.array([[311.11, 0.0, 112.0], [0.0, 311.11, 112.0], [0.0, 0.0, 1.0]])
 K2 = np.array([[245.0, 0.0, 112.0], [0.0, 245.0, 112.0], [0.0, 0.0, 1.0]])
 
-AUGMENTED_VERTICES_FILE_PATH = "./resource/vertices_keypoints_corr.csv"
+AUGMENTED_VERTICES_FILE_PATH = "./resource/vertices_keypoints_corr_smpl.csv"
 AUGMENTED_VERTICES_INDEX_DICT = load_augmented_corr()
 AUGMENTED_VERTICES_NAMES = list(AUGMENTED_VERTICES_INDEX_DICT.keys())
 COCO_VERTICES_NAME = [
@@ -241,11 +241,10 @@ JSON_CATEGORIES = [
             "l_lelbow",
             "r_melbow",
             "l_melbow",
-            "r_mwrist",
-            "l_mwrist",
             "r_lwrist",
             "l_lwrist",
-            "C7",
+            "r_mwrist",
+            "l_mwrist",
             "r_ASIS",
             "l_ASIS",
             "r_PSIS",
@@ -262,14 +261,30 @@ JSON_CATEGORIES = [
             "l_5meta",
             "r_toe",
             "l_toe",
-            "r_pinky",
-            "l_pinky",
-            "r_index",
-            "l_index",
-            "L4",
-            "T6",
             "r_big_toe",
             "l_big_toe",
+            "l_calc",
+            "r_calc",
+            "r_bpinky",
+            "l_bpinky",
+            "r_tpinky",
+            "l_tpinky",
+            "r_bindex",
+            "l_bindex",
+            "r_tindex",
+            "l_tindex",
+            "r_tmiddle",
+            "l_tmiddle",
+            "r_tring",
+            "l_tring",
+            "r_bthumb",
+            "l_bthumb",
+            "r_tthumb",
+            "l_tthumb",
+            "C7",
+            "L2",
+            "T11",
+            "T6",
         ],
         "coco_keypoints": [
             "nose",

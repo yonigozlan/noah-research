@@ -19,7 +19,8 @@ import torch
 import torchgeometry as tgm
 from common import constants
 from common.pose_dataset import PoseDataset
-from common.utils import cam_crop2full, estimate_focal_length, strip_prefix_if_present
+from common.utils import (cam_crop2full, estimate_focal_length,
+                          strip_prefix_if_present)
 from constants import AUGMENTED_VERTICES_INDEX_DICT
 from models.cliff_hr48.cliff import CLIFF as cliff_hr48
 from models.cliff_res50.cliff import CLIFF as cliff_res50
@@ -33,23 +34,78 @@ from mmpose.evaluation.metrics.infinity_metric import InfinityAnatomicalMetric
 from smplx_local.transfer_model.config.defaults import conf as default_conf
 from smplx_local.transfer_model.losses import build_loss
 from smplx_local.transfer_model.optimizers import build_optimizer, minimize
-from smplx_local.transfer_model.transfer_model import (
-    build_edge_closure,
-    build_vertex_closure,
-    get_variables,
-    summary_closure,
-)
-from smplx_local.transfer_model.utils import (
-    batch_rodrigues,
-    get_vertices_per_edge,
-    read_deformation_transfer,
-)
-from smplx_local.transfer_model.utils.def_transfer import apply_deformation_transfer
+from smplx_local.transfer_model.transfer_model import (build_edge_closure,
+                                                       build_vertex_closure,
+                                                       get_variables,
+                                                       summary_closure)
+from smplx_local.transfer_model.utils import (batch_rodrigues,
+                                              get_vertices_per_edge,
+                                              read_deformation_transfer)
+from smplx_local.transfer_model.utils.def_transfer import \
+    apply_deformation_transfer
 
 CKPT_PATH = "data/ckpt/hr48-PA43.0_MJE69.0_MVE81.2_3dpw.pt"
 BACKBONE = "hr48"
 BATCH_SIZE = 64
 
+used_data_keys=[
+        "nose",
+        "left_eye",
+        "right_eye",
+        "left_ear",
+        "right_ear",
+        "left_shoulder",
+        "right_shoulder",
+        "left_elbow",
+        "right_elbow",
+        "left_wrist",
+        "right_wrist",
+        "left_hip",
+        "right_hip",
+        "left_knee",
+        "right_knee",
+        "left_ankle",
+        "right_ankle",
+        "sternum",
+        "rshoulder",
+        "lshoulder",
+        "r_lelbow",
+        "l_lelbow",
+        "r_melbow",
+        "l_melbow",
+        "r_lwrist",
+        "l_lwrist",
+        "r_mwrist",
+        "l_mwrist",
+        "r_ASIS",
+        "l_ASIS",
+        "r_PSIS",
+        "l_PSIS",
+        "r_knee",
+        "l_knee",
+        "r_mknee",
+        "l_mknee",
+        "r_ankle",
+        "l_ankle",
+        "r_mankle",
+        "l_mankle",
+        "r_5meta",
+        "l_5meta",
+        "r_toe",
+        "l_toe",
+        "r_big_toe",
+        "l_big_toe",
+        "l_calc",
+        "r_calc",
+        "C7",
+        "L2",
+        "T11",
+        "T6",
+    ]
+
+AUGMENTED_VERTICES_INDEX_DICT = {
+    key: value for key, value in AUGMENTED_VERTICES_INDEX_DICT.items() if key in used_data_keys
+}
 
 def run_fitting(
     exp_cfg,
@@ -249,12 +305,12 @@ def smpl_to_smplx(vertices, faces, exp_cfg, body_model, def_matrix, device):
 
 def eval_dataset(root_dir, annotation_path):
     infinity_metric = InfinityAnatomicalMetric(
-        osp.join(root_dir, annotation_path), use_area=False
+        osp.join(root_dir, annotation_path), use_area=False, used_data_keys=used_data_keys
     )
     coco = COCO(osp.join(root_dir, annotation_path))
     # ann_ids = coco.getAnnIds(imgIds=img_id)
     infinity_metric.dataset_meta = {"CLASSES": coco.loadCats(coco.getCatIds())}
-    infinity_metric.dataset_meta["num_keypoints"] = 36
+    infinity_metric.dataset_meta["num_keypoints"] = len(used_data_keys)
     infinity_metric.dataset_meta["sigmas"] = np.array(
         [
             0.026,
@@ -274,47 +330,11 @@ def eval_dataset(root_dir, annotation_path):
             0.087,
             0.089,
             0.089,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-            0.05,
-        ]
+        ] + [0.05 for _ in range(len(used_data_keys) - 17)]
     )
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    exp_cfg, def_matrix, body_model = get_smplx_tools(device)
+    # exp_cfg, def_matrix, body_model = get_smplx_tools(device)
 
     print("--------------------------- 3D HPS estimation ---------------------------")
     # Create the model instance
@@ -370,16 +390,16 @@ def eval_dataset(root_dir, annotation_path):
         )
         pred_vertices = pred_output.vertices
 
-        var_dict = smpl_to_smplx(
-            pred_vertices,
-            torch.tensor(
-                smpl_model.faces.astype(np.int32), dtype=torch.long, device=device
-            ),
-            exp_cfg,
-            body_model,
-            def_matrix,
-            device,
-        )
+        # var_dict = smpl_to_smplx(
+        #     pred_vertices,
+        #     torch.tensor(
+        #         smpl_model.faces.astype(np.int32), dtype=torch.long, device=device
+        #     ),
+        #     exp_cfg,
+        #     body_model,
+        #     def_matrix,
+        #     device,
+        # )
         data_samples = []
         for i in range(len(batch["img_path"])):
             data_sample = {}
@@ -401,7 +421,7 @@ def eval_dataset(root_dir, annotation_path):
                     [0, 0, 1],
                 ]
             )
-            anatomical_vertices = var_dict["vertices"][
+            anatomical_vertices = pred_vertices[
                 i, list(AUGMENTED_VERTICES_INDEX_DICT.values())
             ]
             # anatomical_vertices = var_dict["vertices"][i]
@@ -423,6 +443,10 @@ def eval_dataset(root_dir, annotation_path):
             data_sample["pred_instances"]["keypoint_scores"] = np.ones(
                 (1, len(projected_vertices[0]) + 17)
             )
+            data_sample["raw_ann_info"]["keypoints"] = {
+                key: value for key, value in data_sample["raw_ann_info"]["keypoints"].items() if key in used_data_keys
+            }
+            data_sample["category_id"] = data_sample["raw_ann_info"]["category_id"]
             # print(
             #     "keypoint_scores shape:",
             #     data_sample["pred_instances"]["keypoint_scores"].shape,
@@ -451,10 +475,11 @@ def eval_dataset(root_dir, annotation_path):
         infinity_metric.process([], data_samples)
         torch.cuda.empty_cache()
         # results = infinity_metric.compute_metrics(infinity_metric.results)
+    # print("results:", infinity_metric.results)
     infinity_metric.evaluate(size=len(infinity_metric.results))
 
 
 if __name__ == "__main__":
     # eval_dataset("../../", "combined_dataset_15fps/test/annotations.json")
-    eval_dataset("/scratch/users/yonigoz/RICH/full_test/", "val_annotations.json")
+    eval_dataset("/scratch/users/yonigoz/RICH/downsampled/", "val_annotations.json")
     # eval_dataset("/scratch/users/yonigoz/BEDLAM/data/", "val_annotations.json")

@@ -20,12 +20,8 @@ import torchgeometry as tgm
 from common import constants
 from common.mocap_dataset import MocapDataset
 from common.renderer_pyrd import Renderer
-from common.utils import (
-    cam_crop2full,
-    estimate_focal_length,
-    strip_prefix_if_present,
-    video_to_images,
-)
+from common.utils import (cam_crop2full, estimate_focal_length,
+                          strip_prefix_if_present, video_to_images)
 from constants import AUGMENTED_VERTICES_INDEX_DICT
 from lib.yolov3_dataset import DetectionDataset
 from lib.yolov3_detector import HumanDetector
@@ -40,18 +36,15 @@ from smplx_local.transfer_model.config.defaults import conf as default_conf
 from smplx_local.transfer_model.data import build_dataloader
 from smplx_local.transfer_model.losses import build_loss
 from smplx_local.transfer_model.optimizers import build_optimizer, minimize
-from smplx_local.transfer_model.transfer_model import (
-    build_edge_closure,
-    build_vertex_closure,
-    get_variables,
-    summary_closure,
-)
-from smplx_local.transfer_model.utils import (
-    batch_rodrigues,
-    get_vertices_per_edge,
-    read_deformation_transfer,
-)
-from smplx_local.transfer_model.utils.def_transfer import apply_deformation_transfer
+from smplx_local.transfer_model.transfer_model import (build_edge_closure,
+                                                       build_vertex_closure,
+                                                       get_variables,
+                                                       summary_closure)
+from smplx_local.transfer_model.utils import (batch_rodrigues,
+                                              get_vertices_per_edge,
+                                              read_deformation_transfer)
+from smplx_local.transfer_model.utils.def_transfer import \
+    apply_deformation_transfer
 
 
 def run_fitting(
@@ -431,12 +424,18 @@ def main(args):
     for img_idx, orig_img_bgr in enumerate(tqdm(orig_img_bgr_all)):
         chosen_mask = detection_all[:, 0] == img_idx
         chosen_vert_arr = pred_vert_arr[chosen_mask]
-        var_dict = smpl_to_smplx(
-            torch.tensor(chosen_vert_arr, dtype=torch.float32, device=device),
-            torch.tensor(
+        var_dict ={
+            "vertices": torch.tensor(chosen_vert_arr, dtype=torch.float32, device=device),
+            "faces": torch.tensor(
                 smpl_model.faces.astype(np.int32), dtype=torch.long, device=device
             ),
-        )
+        }
+        # var_dict = smpl_to_smplx(
+        #     torch.tensor(chosen_vert_arr, dtype=torch.float32, device=device),
+        #     torch.tensor(
+        #         smpl_model.faces.astype(np.int32), dtype=torch.long, device=device
+        #     ),
+        # )
 
         # setup renderer for visualization
         img_h, img_w, _ = orig_img_bgr.shape
@@ -447,7 +446,7 @@ def main(args):
         nb_samples = len(var_dict["vertices"])
         projected_vertices = np.matmul(
             intrinsic_matrix,
-            var_dict["vertices"][:, list(AUGMENTED_VERTICES_INDEX_DICT.values())]
+            var_dict["vertices"][:, :]
             .cpu()
             .detach()
             .reshape((-1, 3))
@@ -460,7 +459,7 @@ def main(args):
         # render vertices on image and save it
         for sample in projected_vertices:
             for x, y, z in sample:
-                cv2.circle(orig_img_bgr, (int(x), int(y)), 1, (0, 0, 255))
+                cv2.circle(orig_img_bgr, (int(x), int(y)), 1, (255, 255, 255))
         filename = osp.basename(img_path_list[img_idx]).split(".")[0]
         filename = filename + "_vertices_cliff_%s.jpg" % args.backbone
         vertices_path = osp.join(front_view_dir, filename)
@@ -482,7 +481,7 @@ def main(args):
         basename = osp.basename(img_path_list[img_idx]).split(".")[0]
         filename = basename + "_front_view_cliff_%s.jpg" % args.backbone
         front_view_path = osp.join(front_view_dir, filename)
-        cv2.imwrite(front_view_path, front_view[:, :, ::-1])
+        # cv2.imwrite(front_view_path, front_view[:, :, ::-1])
 
         if args.show_sideView:
             side_view_img = renderer.render_side_view(
@@ -567,7 +566,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=32,
+        default=4,
         help="batch size for detection and motion capture",
     )
 
