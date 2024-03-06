@@ -46,6 +46,64 @@ from smplx_local.transfer_model.utils import (batch_rodrigues,
 from smplx_local.transfer_model.utils.def_transfer import \
     apply_deformation_transfer
 
+used_data_keys=[
+        "nose",
+        "left_eye",
+        "right_eye",
+        "left_ear",
+        "right_ear",
+        "left_shoulder",
+        "right_shoulder",
+        "left_elbow",
+        "right_elbow",
+        "left_wrist",
+        "right_wrist",
+        "left_hip",
+        "right_hip",
+        "left_knee",
+        "right_knee",
+        "left_ankle",
+        "right_ankle",
+        "sternum",
+        "rshoulder",
+        "lshoulder",
+        "r_lelbow",
+        "l_lelbow",
+        "r_melbow",
+        "l_melbow",
+        "r_lwrist",
+        "l_lwrist",
+        "r_mwrist",
+        "l_mwrist",
+        "r_ASIS",
+        "l_ASIS",
+        "r_PSIS",
+        "l_PSIS",
+        "r_knee",
+        "l_knee",
+        "r_mknee",
+        "l_mknee",
+        "r_ankle",
+        "l_ankle",
+        "r_mankle",
+        "l_mankle",
+        "r_5meta",
+        "l_5meta",
+        "r_toe",
+        "l_toe",
+        "r_big_toe",
+        "l_big_toe",
+        "l_calc",
+        "r_calc",
+        "C7",
+        "L2",
+        "T11",
+        "T6",
+    ]
+
+AUGMENTED_VERTICES_INDEX_DICT = {
+    key: value for key, value in AUGMENTED_VERTICES_INDEX_DICT.items() if key in used_data_keys
+}
 
 def run_fitting(
     exp_cfg,
@@ -245,7 +303,6 @@ def smpl_to_smplx(
         mask_ids=None,
     )
 
-
 def main(args):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
@@ -444,6 +501,7 @@ def main(args):
             [[focal_length, 0, img_w / 2], [0, focal_length, img_h / 2], [0, 0, 1]]
         )
         nb_samples = len(var_dict["vertices"])
+
         projected_vertices = np.matmul(
             intrinsic_matrix,
             var_dict["vertices"][:, :]
@@ -455,15 +513,33 @@ def main(args):
         ).T
         projected_vertices[:, :2] /= projected_vertices[:, 2:]
         projected_vertices = projected_vertices.reshape((nb_samples, -1, 3))
+        anatomical_landmarks = projected_vertices[:, list(AUGMENTED_VERTICES_INDEX_DICT.values()), :]
 
+        # save original image
+        filename = osp.basename(img_path_list[img_idx])
+        filename = filename.split(".")[0] + "_orig.jpg"
+        orig_img_path = osp.join(front_view_dir, filename)
+        cv2.imwrite(orig_img_path, orig_img_bgr)
+
+        img_vertices = orig_img_bgr.copy()
         # render vertices on image and save it
         for sample in projected_vertices:
             for x, y, z in sample:
-                cv2.circle(orig_img_bgr, (int(x), int(y)), 1, (255, 255, 255))
+                cv2.circle(img_vertices, (int(x), int(y)), 1, (255, 255, 255), -1)
         filename = osp.basename(img_path_list[img_idx]).split(".")[0]
         filename = filename + "_vertices_cliff_%s.jpg" % args.backbone
         vertices_path = osp.join(front_view_dir, filename)
-        cv2.imwrite(vertices_path, orig_img_bgr)
+        cv2.imwrite(vertices_path, img_vertices)
+
+        img_anatomical_landmarks = orig_img_bgr.copy()
+        #render anatomical landmarks on image and save it
+        for sample in anatomical_landmarks:
+            for x, y, z in sample:
+                cv2.circle(img_anatomical_landmarks, (int(x), int(y)), 3, (255, 255, 0), -1)
+        filename = osp.basename(img_path_list[img_idx]).split(".")[0]
+        filename = filename + "_anatomical_landmarks_cliff_%s.jpg" % args.backbone
+        vertices_path = osp.join(front_view_dir, filename)
+        cv2.imwrite(vertices_path, img_anatomical_landmarks)
 
         renderer = Renderer(
             focal_length=focal_length,
@@ -481,7 +557,7 @@ def main(args):
         basename = osp.basename(img_path_list[img_idx]).split(".")[0]
         filename = basename + "_front_view_cliff_%s.jpg" % args.backbone
         front_view_path = osp.join(front_view_dir, filename)
-        # cv2.imwrite(front_view_path, front_view[:, :, ::-1])
+        cv2.imwrite(front_view_path, front_view[:, :, ::-1])
 
         if args.show_sideView:
             side_view_img = renderer.render_side_view(

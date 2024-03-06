@@ -11,6 +11,7 @@ import argparse
 import glob
 import os
 import os.path as osp
+from copy import deepcopy
 
 import cv2
 import numpy as np
@@ -31,6 +32,7 @@ from tqdm import tqdm
 from xtcocotools.coco import COCO
 
 from mmpose.evaluation.metrics.infinity_metric import InfinityAnatomicalMetric
+from mmpose.evaluation.metrics.keypoint_2d_metrics import PCKAccuracy
 from smplx_local.transfer_model.config.defaults import conf as default_conf
 from smplx_local.transfer_model.losses import build_loss
 from smplx_local.transfer_model.optimizers import build_optimizer, minimize
@@ -307,10 +309,31 @@ def eval_dataset(root_dir, annotation_path):
     infinity_metric = InfinityAnatomicalMetric(
         osp.join(root_dir, annotation_path), use_area=False, used_data_keys=used_data_keys
     )
+
+    pck_metric_0_5 = PCKAccuracy(
+        thr = 0.05,
+        norm_item = 'bbox',
+        prefix="at_0.05",
+    )
+    pck_metric_1 = PCKAccuracy(
+        thr = 0.1,
+        norm_item = 'bbox',
+        prefix="at_0.1",
+    )
+    pck_metric_2 = PCKAccuracy(
+        thr = 0.2,
+        norm_item = 'bbox',
+        prefix="at_0.2",
+    )
+
     coco = COCO(osp.join(root_dir, annotation_path))
+    metrics = [infinity_metric, pck_metric_0_5, pck_metric_1, pck_metric_2]
+    for metric in metrics:
+        metric.dataset_meta = {'dataset_name' : "RICH"}
+        metric.dataset_meta["num_keypoints"] = len(used_data_keys)
+
     # ann_ids = coco.getAnnIds(imgIds=img_id)
-    infinity_metric.dataset_meta = {"CLASSES": coco.loadCats(coco.getCatIds())}
-    infinity_metric.dataset_meta["num_keypoints"] = len(used_data_keys)
+    infinity_metric.dataset_meta["CLASSES"] = coco.loadCats(coco.getCatIds())
     infinity_metric.dataset_meta["sigmas"] = np.array(
         [
             0.026,
@@ -409,7 +432,26 @@ def eval_dataset(root_dir, annotation_path):
             data_sample["id"] = int(batch["id"][i].cpu().numpy())
             data_sample["img_id"] = int(batch["id"][i].cpu().numpy())
             data_sample["raw_ann_info"] = anns[i]
+
             data_sample["gt_instances"] = {}
+            data_sample["gt_instances"]["bboxes"] = [np.array(anns[i]["bbox"])]
+            data_sample["gt_instances"]["keypoints"] = {
+                key: value for key, value in anns[i]["keypoints"].items() if key in used_data_keys
+            }
+            data_sample["gt_instances"]["keypoints_visible"] = np.ones(
+                (1, len(data_sample["gt_instances"]["keypoints"]) + 17)
+            )
+            data_sample["gt_instances"]["keypoints_visible"][0, :17] = 0
+            gt_keypoints = np.zeros((1, len(data_sample["gt_instances"]["keypoints"]) + 17, 2))
+            # add coco keypoints
+            gt_keypoints[0, :17] = np.array(anns[i]["coco_keypoints"]).reshape(-1, 3)[:, :2]
+            for j, key in enumerate(used_data_keys):
+                if key in anns[i]["keypoints"]:
+                    gt_keypoints[0, j, 0] = anns[i]["keypoints"][key]["x"]
+                    gt_keypoints[0, j, 1] = anns[i]["keypoints"][key]["y"]
+
+            data_sample["gt_instances"]["keypoints"] = gt_keypoints
+
 
             img_ori_path = osp.join(root_dir, batch["img_path"][i])
             img_ori = cv2.imread(img_ori_path)
@@ -472,14 +514,18 @@ def eval_dataset(root_dir, annotation_path):
             # vertices_path = osp.join("eval_test", filename)
             # cv2.imwrite(vertices_path, img_ori)
             data_samples.append(data_sample)
-        infinity_metric.process([], data_samples)
+        for metric in metrics:
+            metric.process([], deepcopy(data_samples))
         torch.cuda.empty_cache()
+        break
         # results = infinity_metric.compute_metrics(infinity_metric.results)
     # print("results:", infinity_metric.results)
-    infinity_metric.evaluate(size=len(infinity_metric.results))
+    for metric in metrics:
+        print(metric.evaluate(size=len(metric.results)))
+    # infinity_metric.evaluate(size=len(infinity_metric.results))
 
 
 if __name__ == "__main__":
-    # eval_dataset("../../", "combined_dataset_15fps/test/annotations.json")
-    eval_dataset("/scratch/users/yonigoz/RICH/downsampled/", "val_annotations.json")
+    eval_dataset("../../", "combined_dataset_15fps/test/annotations.json")
+    # eval_dataset("/scratch/users/yonigoz/RICH/downsampled/", "val_annotations.json")
     # eval_dataset("/scratch/users/yonigoz/BEDLAM/data/", "val_annotations.json")
