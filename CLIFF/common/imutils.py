@@ -2,11 +2,10 @@
 # This script is borrowed and extended from SPIN
 
 import cv2
-import torch
 import numpy as np
-from torch.nn import functional as F
-
+import torch
 from common import constants
+from torch.nn import functional as F
 
 
 def get_transform(center, scale, res, rot=0):

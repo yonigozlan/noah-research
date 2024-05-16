@@ -4,8 +4,12 @@ import json
 import numpy as np
 
 
-def load_augmented_corr():
-    with open(AUGMENTED_VERTICES_FILE_PATH, "r", encoding="utf-8-sig") as data:
+def load_augmented_corr(smplx=False):
+    if smplx:
+        path = AUGMENTED_VERTICES_FILE_PATH_SMPLX
+    else:
+        path = AUGMENTED_VERTICES_FILE_PATH_SMPL
+    with open(path, "r", encoding="utf-8-sig") as data:
         augmented_vertices_index = list(csv.DictReader(data))
         augmented_vertices_index_dict = {
             vertex["Name"]: int(vertex["Index"]) for vertex in augmented_vertices_index
@@ -56,8 +60,10 @@ exercises = [
 K1 = np.array([[311.11, 0.0, 112.0], [0.0, 311.11, 112.0], [0.0, 0.0, 1.0]])
 K2 = np.array([[245.0, 0.0, 112.0], [0.0, 245.0, 112.0], [0.0, 0.0, 1.0]])
 
-AUGMENTED_VERTICES_FILE_PATH = "./resource/vertices_keypoints_corr_smpl.csv"
-AUGMENTED_VERTICES_INDEX_DICT = load_augmented_corr()
+AUGMENTED_VERTICES_FILE_PATH_SMPLX = "./resource/vertices_keypoints_corr.csv"
+AUGMENTED_VERTICES_FILE_PATH_SMPL = "./resource/vertices_keypoints_corr_smpl.csv"
+AUGMENTED_VERTICES_INDEX_DICT_SMPLX = load_augmented_corr(smplx=True)
+AUGMENTED_VERTICES_INDEX_DICT = load_augmented_corr(smplx=False)
 AUGMENTED_VERTICES_NAMES = list(AUGMENTED_VERTICES_INDEX_DICT.keys())
 COCO_VERTICES_NAME = [
     "nose",

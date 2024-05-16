@@ -18,11 +18,13 @@ import numpy as np
 import smplx
 import torch
 import torchgeometry as tgm
+from bedlam.tester import Tester
 from common import constants
 from common.pose_dataset import PoseDataset
 from common.utils import (cam_crop2full, estimate_focal_length,
                           strip_prefix_if_present)
-from constants import AUGMENTED_VERTICES_INDEX_DICT
+from constants import (AUGMENTED_VERTICES_INDEX_DICT,
+                       AUGMENTED_VERTICES_INDEX_DICT_SMPLX)
 from models.cliff_hr48.cliff import CLIFF as cliff_hr48
 from models.cliff_res50.cliff import CLIFF as cliff_res50
 from omegaconf import OmegaConf
@@ -46,9 +48,12 @@ from smplx_local.transfer_model.utils import (batch_rodrigues,
 from smplx_local.transfer_model.utils.def_transfer import \
     apply_deformation_transfer
 
-CKPT_PATH = "data/ckpt/hr48-PA43.0_MJE69.0_MVE81.2_3dpw.pt"
+# CKPT_PATH = "data/ckpt/hr48-PA43.0_MJE69.0_MVE81.2_3dpw.pt"
+CKPT_PATH = "data/ckpt/bedlam_cliff_3dpw_finetuned.ckpt"
 BACKBONE = "hr48"
 BATCH_SIZE = 64
+MODEL_TYPE = "cliff_bedlam"
+# MODEL_TYPE = "cliff"
 
 used_data_keys=[
         "nose",
@@ -104,6 +109,9 @@ used_data_keys=[
         "T11",
         "T6",
     ]
+
+if MODEL_TYPE == "cliff_bedlam":
+    AUGMENTED_VERTICES_INDEX_DICT = AUGMENTED_VERTICES_INDEX_DICT_SMPLX
 
 AUGMENTED_VERTICES_INDEX_DICT = {
     key: value for key, value in AUGMENTED_VERTICES_INDEX_DICT.items() if key in used_data_keys
@@ -365,10 +373,15 @@ def eval_dataset(root_dir, annotation_path):
     cliff_model = cliff(constants.SMPL_MEAN_PARAMS).to(device)
     # Load the pretrained model
     print("Load the CLIFF checkpoint from path:", CKPT_PATH)
-    state_dict = torch.load(CKPT_PATH)["model"]
-    state_dict = strip_prefix_if_present(state_dict, prefix="module.")
-    cliff_model.load_state_dict(state_dict, strict=True)
-    cliff_model.eval()
+    # state_dict = torch.load(CKPT_PATH)["model"]
+    if MODEL_TYPE == "cliff_bedlam":
+        tester = Tester('bedlam/configs/demo_bedlam_cliff.yaml', CKPT_PATH)
+    else:
+        state_dict = torch.load(CKPT_PATH)["model"]
+        state_dict = strip_prefix_if_present(state_dict, prefix="module.")
+        cliff_model.load_state_dict(state_dict, strict=True)
+        cliff_model.eval()
+
 
     # Setup the SMPL model
     smpl_model = smplx.create(constants.SMPL_MODEL_DIR, "smpl").to(device)
@@ -397,21 +410,30 @@ def eval_dataset(root_dir, annotation_path):
         )  # [-1, 1]
 
         with torch.no_grad():
-            pred_rotmat, pred_betas, pred_cam_crop = cliff_model(norm_img, bbox_info)
+            if MODEL_TYPE == "cliff_bedlam":
+                cliff_output = tester.model(norm_img, bbox_center=center, bbox_scale=scale, img_w=img_w, img_h=img_h)
+                pred_rotmat = cliff_output["pred_pose"]
+                pred_betas = cliff_output["pred_shape"]
+                pred_cam_crop = cliff_output["pred_cam"]
+            else:
+                pred_rotmat, pred_betas, pred_cam_crop = cliff_model(norm_img, bbox_info)
 
         # convert the camera parameters from the crop camera to the full camera
         full_img_shape = torch.stack((img_h, img_w), dim=-1)
         pred_cam_full = cam_crop2full(
             pred_cam_crop, center, scale, full_img_shape, focal_length
         )
-        pred_output = smpl_model(
-            betas=pred_betas,
-            body_pose=pred_rotmat[:, 1:],
-            global_orient=pred_rotmat[:, [0]],
-            pose2rot=False,
-            transl=pred_cam_full,
-        )
-        pred_vertices = pred_output.vertices
+        if MODEL_TYPE == "cliff_bedlam":
+            pred_vertices = cliff_output["vertices"] + pred_cam_full.unsqueeze(1)
+        else:
+            pred_output = smpl_model(
+                betas=pred_betas,
+                body_pose=pred_rotmat[:, 1:],
+                global_orient=pred_rotmat[:, [0]],
+                pose2rot=False,
+                transl=pred_cam_full,
+            )
+            pred_vertices = pred_output.vertices
 
         # var_dict = smpl_to_smplx(
         #     pred_vertices,
@@ -517,7 +539,6 @@ def eval_dataset(root_dir, annotation_path):
         for metric in metrics:
             metric.process([], deepcopy(data_samples))
         torch.cuda.empty_cache()
-        break
         # results = infinity_metric.compute_metrics(infinity_metric.results)
     # print("results:", infinity_metric.results)
     for metric in metrics:
