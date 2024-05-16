@@ -5,7 +5,7 @@ from flatten_dict import flatten, unflatten
 from yacs.config import CfgNode as CN
 
 SMPL_MODEL_DIR = "data/smpl"
-SMPLX_MODEL_DIR = "../../models/smplx"
+SMPLX_MODEL_DIR = "../../smplx"
 MANO_MODEL_DIR = "data/body_models/mano/mano_v1_2/models/"
 
 JOINT_REGRESSOR_TRAIN_EXTRA = "data/utils/J_regressor_extra.npy"
